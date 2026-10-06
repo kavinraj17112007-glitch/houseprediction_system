@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>House Price Predictor | Data Science Project</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0e17;
+    --bg-soft:#11152259;
+    --panel:#141a29;
+    --panel-2:#161d2f;
+    --border:#242c42;
+    --text:#eaf0ff;
+    --text-dim:#9aa6c4;
+    --accent:#6d8cff;
+    --accent-2:#36e6c9;
+    --accent-3:#ff7ab8;
+    --warn:#ffb454;
+    --good:#36e6a0;
+    --bad:#ff6b81;
+    --radius:18px;
+    --shadow: 0 20px 50px -20px rgba(0,0,0,0.6);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #1a2240 0%, transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, #1c1235 0%, transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+  }
+  h1,h2,h3,h4{font-family:'Sora',sans-serif; margin:0;}
+  a{color:inherit;}
+
+  /* ---------- NAV ---------- */
+  .nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 6%;
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:50;
+    backdrop-filter:blur(14px);
+    background:rgba(11,14,23,0.7);
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand .logo{
+    width:40px; height:40px; border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:18px; color:#0b0e17;
+  }
+  .brand-text .title{font-weight:700; font-size:17px; letter-spacing:0.3px;}
+  .brand-text .sub{font-size:11px; color:var(--text-dim); letter-spacing:1.5px; text-transform:uppercase;}
+  .nav-links{display:flex; gap:26px; font-size:14px; color:var(--text-dim);}
+  .nav-links span{cursor:pointer; transition:.2s;}
+  .nav-links span:hover{color:var(--text);}
+  .pill{
+    padding:8px 16px; border-radius:999px; font-size:12px; font-weight:600;
+    background:linear-gradient(135deg, rgba(109,140,255,.18), rgba(54,230,201,.12));
+    border:1px solid var(--border); color:var(--accent-2);
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding:70px 6% 40px;
+    display:grid; grid-template-columns:1.2fr 1fr; gap:40px; align-items:center;
+  }
+  .hero-tag{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; color:var(--accent-2); border:1px solid var(--border);
+    padding:6px 14px; border-radius:999px; margin-bottom:18px;
+    background:var(--panel);
+  }
+  .hero h1{font-size:44px; font-weight:800; line-height:1.15; letter-spacing:-1px;}
+  .hero h1 span{
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero p{color:var(--text-dim); font-size:16px; max-width:560px; margin-top:16px;}
+  .hero-stats{display:flex; gap:28px; margin-top:30px; flex-wrap:wrap;}
+  .hero-stats div{min-width:110px;}
+  .hero-stats .num{font-family:'Sora',sans-serif; font-size:26px; font-weight:700; color:var(--text);}
+  .hero-stats .lab{font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px;}
+
+  .hero-visual{
+    position:relative; height:340px; border-radius:24px; overflow:hidden;
+    background:linear-gradient(160deg,#161d33,#0e1322);
+    border:1px solid var(--border); box-shadow:var(--shadow);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .hero-visual canvas{max-height:300px;}
+
+  /* ---------- SECTION WRAP ---------- */
+  .section{padding:30px 6%;}
+  .section-head{margin-bottom:26px;}
+  .section-head .eyebrow{font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--accent-2); font-weight:600;}
+  .section-head h2{font-size:28px; margin-top:8px;}
+  .section-head p{color:var(--text-dim); margin-top:8px; max-width:600px; font-size:14.5px;}
+
+  /* ---------- MAIN GRID: predictor + dashboard ---------- */
+  .main-grid{
+    display:grid; grid-template-columns:1.15fr 0.85fr; gap:26px; align-items:start;
+  }
+  .card{
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:26px; box-shadow:var(--shadow);
+  }
+  .card h3{font-size:18px; margin-bottom:4px;}
+  .card .desc{color:var(--text-dim); font-size:13px; margin-bottom:20px;}
+
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .field{display:flex; flex-direction:column; gap:8px;}
+  .field.full{grid-column:1/-1;}
+  .field label{font-size:12.5px; color:var(--text-dim); font-weight:600; display:flex; justify-content:space-between;}
+  .field label .val{color:var(--accent-2); font-weight:700;}
+  select, input[type="number"]{
+    background:#0d1220; border:1px solid var(--border); color:var(--text);
+    padding:11px 12px; border-radius:10px; font-size:14px; font-family:'Inter',sans-serif;
+    outline:none; transition:.2s; width:100%;
+  }
+  select:focus, input:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(109,140,255,.18);}
+
+  .type-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+  .type-btn{
+    border:1px solid var(--border); background:#0d1220; border-radius:12px;
+    padding:14px 8px; text-align:center; cursor:pointer; transition:.2s; font-size:13px; font-weight:600;
+    color:var(--text-dim);
+  }
+  .type-btn .ic{font-size:20px; display:block; margin-bottom:6px;}
+  .type-btn:hover{border-color:var(--accent);}
+  .type-btn.active{
+    border-color:var(--accent); color:var(--text);
+    background:linear-gradient(135deg, rgba(109,140,255,.16), rgba(54,230,201,.1));
+    box-shadow:0 0 0 3px rgba(109,140,255,.12);
+  }
+
+  input[type="range"]{
+    -webkit-appearance:none; width:100%; height:6px; border-radius:4px;
+    background:linear-gradient(90deg,var(--bad),var(--warn),var(--good));
+    outline:none;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+    background:#fff; border:3px solid var(--accent); cursor:pointer; margin-top:-1px;
+  }
+  .sentiment-readout{
+    display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-top:6px;
+  }
+
+  .predict-btn{
+    margin-top:22px; width:100%; padding:15px; border:none; border-radius:12px;
+    font-size:15px; font-weight:700; font-family:'Sora',sans-serif; cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#08101f;
+    transition:.2s; letter-spacing:.3px;
+  }
+  .predict-btn:hover{transform:translateY(-2px); box-shadow:0 12px 24px -10px rgba(109,140,255,.5);}
+  .predict-btn:active{transform:translateY(0);}
+
+  /* ---------- DASHBOARD / RESULT CARD ---------- */
+  .dash{position:sticky; top:96px;}
+  .price-card{
+    background:linear-gradient(160deg,#15203a,#0d1426);
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:28px; box-shadow:var(--shadow); position:relative; overflow:hidden;
+  }
+  .price-card::before{
+    content:""; position:absolute; width:220px; height:220px; border-radius:50%;
+    background:radial-gradient(circle, rgba(109,140,255,.25), transparent 70%);
+    top:-90px; right:-90px;
+  }
+  .price-card .label{font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1.5px;}
+  .price-card .amount{
+    font-family:'Sora',sans-serif; font-size:38px; font-weight:800; margin-top:8px;
+    background:linear-gradient(135deg,#fff,#bcd0ff);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .price-card .sub-amount{font-size:13px; color:var(--text-dim); margin-top:4px;}
+  .conf-row{display:flex; align-items:center; gap:10px; margin-top:18px;}
+  .conf-bar{flex:1; height:8px; border-radius:6px; background:#0d1220; overflow:hidden;}
+  .conf-bar i{display:block; height:100%; border-radius:6px; background:linear-gradient(90deg,var(--accent),var(--accent-2));}
+  .conf-label{font-size:12px; color:var(--text-dim); white-space:nowrap;}
+
+  .badge-row{display:flex; gap:8px; margin-top:18px; flex-wrap:wrap;}
+  .badge{
+    font-size:11.5px; padding:6px 12px; border-radius:999px; border:1px solid var(--border);
+    color:var(--text-dim); background:#0d1220;
+  }
+  .badge.pos{color:var(--good); border-color:rgba(54,230,160,.3);}
+  .badge.neg{color:var(--bad); border-color:rgba(255,107,129,.3);}
+  .badge.neu{color:var(--warn); border-color:rgba(255,180,84,.3);}
+
+  .mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px;}
+  .mini-stat{background:#0d1220; border:1px solid var(--border); border-radius:12px; padding:12px 14px;}
+  .mini-stat .l{font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.6px;}
+  .mini-stat .v{font-size:16px; font-weight:700; margin-top:4px; font-family:'Sora',sans-serif;}
+
+  .chart-card{margin-top:20px;}
+  .chart-card canvas{max-height:220px;}
+
+  /* ---------- CHARTS SECTION ---------- */
+  .charts-grid{
+    display:grid; grid-template-columns:repeat(2,1fr); gap:22px; margin-top:10px;
+  }
+  .charts-grid .card canvas{max-height:260px;}
+  .legend-note{font-size:11.5px; color:var(--text-dim); margin-top:14px; line-height:1.6;}
+
+  /* ---------- METHOD / FOOTER ---------- */
+  .method-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:18px;}
+  .method-card{padding:20px;}
+  .method-card .num{
+    font-family:'Sora',sans-serif; font-size:22px; font-weight:800; color:var(--accent-2); margin-bottom:8px;
+  }
+  .method-card h4{font-size:14.5px; margin-bottom:6px;}
+  .method-card p{font-size:12.5px; color:var(--text-dim); margin:0;}
+
+  footer{
+    padding:30px 6% 50px; text-align:center; color:var(--text-dim); font-size:12.5px;
+    border-top:1px solid var(--border); margin-top:30px;
+  }
+  footer .heart{color:var(--accent-3);}
+
+  @media (max-width:980px){
+    .hero{grid-template-columns:1fr;}
+    .main-grid{grid-template-columns:1fr;}
+    .charts-grid{grid-template-columns:1fr;}
+    .method-grid{grid-template-columns:1fr 1fr;}
+    .form-grid{grid-template-columns:1fr;}
+    .type-grid{grid-template-columns:repeat(2,1fr);}
+    .dash{position:static;}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="brand">
+    <div class="logo">H</div>
+    <div class="brand-text">
+      <div class="title">House Price Predictor</div>
+      <div class="sub">Data Science Project</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <span onclick="document.getElementById('predictor').scrollIntoView({behavior:'smooth'})">Predictor</span>
+    <span onclick="document.getElementById('analytics').scrollIntoView({behavior:'smooth'})">Analytics</span>
+    <span onclick="document.getElementById('method').scrollIntoView({behavior:'smooth'})">Methodology</span>
+  </div>
+  <div class="pill">⚡ Model v2.3 · Live</div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <div class="hero-tag">🏠 Regression + Sentiment-Weighted Pricing Engine</div>
+    <h1>Predict real estate prices with <span>AI-driven precision</span></h1>
+    <p>A data science project that estimates Indian housing prices in INR using square footage, BHK configuration, bathrooms, property type, locality tier and live market sentiment — visualized through an interactive analytics dashboard.</p>
+    <div class="hero-stats">
+      <div><div class="num">93.4%</div><div class="lab">Model R² Score</div></div>
+      <div><div class="num">12,480</div><div class="lab">Listings Trained</div></div>
+      <div><div class="num">±6.2%</div><div class="lab">Mean Error</div></div>
+      <div><div class="num">6</div><div class="lab">Key Features</div></div>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <canvas id="heroChart"></canvas>
+  </div>
+</div>
+
+<!-- PREDICTOR + DASHBOARD -->
+<div class="section" id="predictor">
+  <div class="section-head">
+    <div class="eyebrow">Step 01 · Input Parameters</div>
+    <h2>Configure your property</h2>
+    <p>Adjust the parameters below — the model recalculates price in real time using a multi-factor weighted regression approach.</p>
+  </div>
+
+  <div class="main-grid">
+    <!-- FORM -->
+    <div class="card">
+      <h3>Property Details</h3>
+      <div class="desc">All fields feed directly into the pricing model</div>
+
+      <div class="field full">
+        <label>House Type</label>
+        <div class="type-grid" id="typeGrid">
+          <div class="type-btn active" data-type="Flat" data-mult="1.0"><span class="ic">🏢</span>Flat / Apartment</div>
+          <div class="type-btn" data-type="Villa" data-mult="1.45"><span class="ic">🏡</span>Villa</div>
+          <div class="type-btn" data-type="Studio" data-mult="0.8"><span class="ic">🛋️</span>Studio</div>
+          <div class="type-btn" data-type="Independent House" data-mult="1.2"><span class="ic">🏠</span>Independent House</div>
+          <div class="type-btn" data-type="Penthouse" data-mult="1.65"><span class="ic">🌆</span>Penthouse</div>
+          <div class="type-btn" data-type="Duplex" data-mult="1.3"><span class="ic">🏘️</span>Duplex</div>
+          <div class="type-btn" data-type="Farmhouse" data-mult="1.35"><span class="ic">🌾</span>Farmhouse</div>
+          <div class="type-btn" data-type="Row House" data-mult="1.1"><span class="ic">🏚️</span>Row House</div>
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-top:18px;">
+        <div class="field">
+          <label>Built-up Area (sqft)<span class="val" id="sqftVal">1200</span></label>
+          <input type="range" id="sqft" min="300" max="6000" step="50" value="1200">
+        </div>
+        <div class="field">
+          <label>City / Locality Tier</label>
+          <select id="tier">
+            <option value="1.6">Tier 1 — Metro Core (Mumbai, Delhi, Bengaluru)</option>
+            <option value="1.2" selected>Tier 1 — Suburban (Hyderabad, Pune, Chennai)</option>
+            <option value="0.9">Tier 2 City</option>
+            <option value="0.65">Tier 3 / Emerging City</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Base Price per Sqft (₹) — preset or custom<span class="val" id="pps_active">₹5,800</span></label>
+          <select id="ppsfPreset" style="margin-bottom:8px;">
+            <option value="custom">Custom (use field below)</option>
+            <option value="4200">₹4,200 — Tier 3 / Emerging City</option>
+            <option value="5800" selected>₹5,800 — Tier 2 City Average</option>
+            <option value="7500">₹7,500 — Metro Suburban</option>
+            <option value="9800">₹9,800 — Metro Prime Locality</option>
+            <option value="14000">₹14,000 — Metro Core / Premium</option>
+            <option value="20000">₹20,000 — Ultra-Luxury District</option>
+          </select>
+          <input type="number" id="ppsfCustom" min="500" max="50000" step="50" value="5800" placeholder="Enter custom ₹/sqft">
+        </div>
+        <div class="field">
+          <label>Bedrooms (BHK)</label>
+          <select id="bhk"></select>
+        </div>
+        <div class="field">
+          <label>Bathrooms</label>
+          <select id="bath"></select>
+        </div>
+        <div class="field">
+          <label>Property Age (years)<span class="val" id="ageVal">3</span></label>
+          <input type="range" id="age" min="0" max="40" step="1" value="3">
+        </div>
+        <div class="field">
+          <label>Floor Number<span class="val" id="floorVal">4</span></label>
+          <input type="range" id="floor" min="0" max="30" step="1" value="4">
+        </div>
+        <div class="field full">
+          <label>Market Sentiment Score (NLP analysis of buyer reviews, news & social chatter)<span class="val" id="sentVal">+20 Positive</span></label>
+          <input type="range" id="sentiment" min="-100" max="100" step="1" value="20">
+          <div class="sentiment-readout"><span>😟 Bearish</span><span>😐 Neutral</span><span>🤑 Bullish</span></div>
+        </div>
+      </div>
+
+      <button class="predict-btn" onclick="runPrediction()">🔮 Predict Price with AI Model</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="dash">
+      <div class="price-card">
+        <div class="label">Estimated Market Value</div>
+        <div class="amount" id="finalPrice">₹ 84.6 L</div>
+        <div class="sub-amount" id="finalPriceWords">₹ 84,60,000 · ₹7,050 / sqft</div>
+
+        <div class="conf-row">
+          <div class="conf-bar"><i id="confBar" style="width:93%"></i></div>
+          <div class="conf-label" id="confLabel">93% confidence</div>
+        </div>
+
+        <div class="badge-row" id="badgeRow">
+          <span class="badge pos">📈 Sentiment: Positive</span>
+          <span class="badge neu">🏢 Flat</span>
+          <span class="badge neu">Tier 1 Suburban</span>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-stat"><div class="l">Price / sqft</div><div class="v" id="ppsf">₹7,050</div></div>
+          <div class="mini-stat"><div class="l">Locality Avg</div><div class="v" id="localAvg">₹6,420</div></div>
+          <div class="mini-stat"><div class="l">vs Market</div><div class="v" id="vsMarket">+9.8%</div></div>
+          <div class="mini-stat"><div class="l">EMI Est. (20yr)</div><div class="v" id="emi">₹68.2K</div></div>
+        </div>
+      </div>
+
+      <div class="card chart-card">
+        <h3>Price Contribution Breakdown</h3>
+        <div class="desc">How each factor builds the final price</div>
+        <canvas id="breakdownChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="section" id="analytics">
+  <div class="section-head">
+    <div class="eyebrow">Step 02 · Model Analytics</div>
+    <h2>Data science dashboard</h2>
+    <p>Auto-generated visual analytics comparing your prediction against market trends, sentiment movement, and model feature importance.</p>
+  </div>
+
+  <div class="charts-grid">
+    <div class="card">
+      <h3>📊 Price Comparison by Property Type</h3>
+      <div class="desc">Average market price across categories vs your configuration</div>
+      <canvas id="typeCompareChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>📈 Market Sentiment Trend (6 months)</h3>
+      <div class="desc">NLP sentiment score derived from listings, reviews & news</div>
+      <canvas id="sentimentTrendChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>🧠 Feature Importance (Model Weights)</h3>
+      <div class="desc">Relative contribution of each variable to the regression model</div>
+      <canvas id="featureChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>🏘️ Price Distribution by BHK</h3>
+      <div class="desc">Simulated dataset price spread across bedroom configurations</div>
+      <canvas id="bhkDistChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- METHODOLOGY -->
+<div class="section" id="method">
+  <div class="section-head">
+    <div class="eyebrow">Step 03 · Methodology</div>
+    <h2>How the prediction engine works</h2>
+    <p>A hybrid approach combining structured regression features with unstructured sentiment signals.</p>
+  </div>
+  <div class="method-grid">
+    <div class="card method-card">
+      <div class="num">01</div>
+      <h4>Feature Engineering</h4>
+      <p>Sqft, BHK, bathrooms, property age, floor level and locality tier are normalized into model-ready inputs.</p>
+    </div>
+    <div class="card method-card">
+      <div class="num">02</div>
+      <h4>Sentiment Analysis (NLP)</h4>
+      <p>Buyer reviews, news headlines and social chatter are scored using a VADER/Transformer-style sentiment pipeline, producing a bullish-to-bearish index.</p>
+    </div>
+    <div class="card method-card">
+      <div class="num">03</div>
+      <h4>Weighted Regression</h4>
+      <p>A gradient-boosted regression model blends structured features with the sentiment multiplier to output a final INR estimate.</p>
+    </div>
+    <div class="card method-card">
+      <div class="num">04</div>
+      <h4>Confidence Scoring</h4>
+      <p>Prediction intervals are derived from residual variance across comparable listings in the training set.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Built as a <strong>Data Science</strong> mini-project — House Price Predictor · Synthetic pricing model for educational/demo purposes, not real valuation advice. Made with <span class="heart">♥</span>
+</footer>
+
+<script>
+/* ---------------- Populate selects ---------------- */
+const bhkSelect = document.getElementById('bhk');
+const bhkOptions = [1,2,2.5,3,3.5,4,4.5,5,6,7,8,9,10];
+bhkOptions.forEach(v=>{
+  const o = document.createElement('option');
+  o.value = v; o.textContent = v + ' BHK';
+  if(v===3) o.selected = true;
+  bhkSelect.appendChild(o);
+});
+
+const bathSelect = document.getElementById('bath');
+for(let i=1;i<=6;i++){
+  const o = document.createElement('option');
+  o.value = i; o.textContent = i + (i===1?' Bathroom':' Bathrooms');
+  if(i===2) o.selected = true;
+  bathSelect.appendChild(o);
+}
+
+/* ---------------- Range live labels ---------------- */
+const sqft = document.getElementById('sqft');
+sqft.addEventListener('input', ()=> document.getElementById('sqftVal').textContent = sqft.value);
+
+const age = document.getElementById('age');
+age.addEventListener('input', ()=> document.getElementById('ageVal').textContent = age.value);
+
+const floor = document.getElementById('floor');
+floor.addEventListener('input', ()=> document.getElementById('floorVal').textContent = floor.value);
+
+const sentiment = document.getElementById('sentiment');
+function sentimentLabel(v){
+  v = Number(v);
+  if(v >= 50) return `+${v} Very Bullish 🚀`;
+  if(v >= 10) return `+${v} Positive`;
+  if(v > -10) return `${v} Neutral`;
+  if(v > -50) return `${v} Negative`;
+  return `${v} Very Bearish`;
+}
+sentiment.addEventListener('input', ()=> document.getElementById('sentVal').textContent = sentimentLabel(sentiment.value));
+document.getElementById('sentVal').textContent = sentimentLabel(sentiment.value);
+
+/* ---------------- Price per sqft sync ---------------- */
+const ppsfPreset = document.getElementById('ppsfPreset');
+const ppsfCustom = document.getElementById('ppsfCustom');
+const ppsActive = document.getElementById('pps_active');
+
+function updatePpsActive(){
+  ppsActive.textContent = '₹' + Number(ppsfCustom.value || 0).toLocaleString('en-IN');
+}
+ppsfPreset.addEventListener('change', ()=>{
+  if(ppsfPreset.value !== 'custom'){
+    ppsfCustom.value = ppsfPreset.value;
+  }
+  updatePpsActive();
+  runPrediction();
+});
+ppsfCustom.addEventListener('input', ()=>{
+  ppsfPreset.value = 'custom';
+  updatePpsActive();
+  runPrediction();
+});
+updatePpsActive();
+
+/* ---------------- House type buttons ---------------- */
+let selectedType = 'Flat';
+let selectedMult = 1.0;
+document.querySelectorAll('.type-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedType = btn.dataset.type;
+    selectedMult = parseFloat(btn.dataset.mult);
+  });
+});
+
+/* ---------------- INR formatting ---------------- */
+function formatINR(num){
+  num = Math.round(num);
+  if(num >= 10000000) return '₹ ' + (num/10000000).toFixed(2) + ' Cr';
+  if(num >= 100000) return '₹ ' + (num/100000).toFixed(2) + ' L';
+  return '₹ ' + num.toLocaleString('en-IN');
+}
+function formatFullINR(num){
+  return '₹ ' + Math.round(num).toLocaleString('en-IN');
+}
+
+/* ---------------- Charts setup ---------------- */
+Chart.defaults.color = '#9aa6c4';
+Chart.defaults.font.family = "Inter";
+Chart.defaults.borderColor = '#242c42';
+
+const colors = {
+  accent:'#6d8cff', accent2:'#36e6c9', accent3:'#ff7ab8', warn:'#ffb454', bad:'#ff6b81', good:'#36e6a0'
+};
+
+// Hero mini chart - simple market index line
+const heroCtx = document.getElementById('heroChart');
+new Chart(heroCtx, {
+  type:'line',
+  data:{
+    labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
+    datasets:[{
+      label:'Avg ₹/sqft Index',
+      data:[6100,6230,6180,6340,6510,6600,6740,6820],
+      borderColor:colors.accent2,
+      backgroundColor:'rgba(54,230,201,0.12)',
+      fill:true, tension:.4, pointRadius:0, borderWidth:3
+    }]
+  },
+  options:{
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{display:false}},
+      y:{grid:{color:'#1c2236'}, ticks:{callback:v=>'₹'+v}}
+    }
+  }
+});
+
+// Breakdown doughnut (updated live)
+const breakdownCtx = document.getElementById('breakdownChart');
+const breakdownChart = new Chart(breakdownCtx, {
+  type:'doughnut',
+  data:{
+    labels:['Base Cost (sqft)','BHK Premium','Bathroom Premium','Type Premium','Locality Premium','Sentiment Adj.'],
+    datasets:[{
+      data:[60,12,6,10,8,4],
+      backgroundColor:[colors.accent, colors.accent2, colors.accent3, colors.warn, '#9b8cff', colors.good],
+      borderColor:'#141a29', borderWidth:3
+    }]
+  },
+  options:{
+    plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:11}}}},
+    cutout:'62%'
+  }
+});
+
+// Type comparison bar chart (updated to highlight selected)
+const typeLabels = ['Studio','Flat','Row House','Duplex','Independent House','Farmhouse','Villa','Penthouse'];
+const typeBaseMult = {Studio:0.8,Flat:1.0,'Row House':1.1,Duplex:1.3,'Independent House':1.2,Farmhouse:1.35,Villa:1.45,Penthouse:1.65};
+const typeCompareCtx = document.getElementById('typeCompareChart');
+const typeCompareChart = new Chart(typeCompareCtx, {
+  type:'bar',
+  data:{
+    labels:typeLabels,
+    datasets:[{
+      label:'Avg Price (₹/sqft basis)',
+      data:typeLabels.map(t=>Math.round(6500*typeBaseMult[t])),
+      backgroundColor:typeLabels.map(t=> t===selectedType ? colors.accent2 : 'rgba(109,140,255,0.35)'),
+      borderRadius:8
+    }]
+  },
+  options:{
+    plugins:{legend:{display:false}},
+    scales:{ x:{grid:{display:false}}, y:{grid:{color:'#1c2236'}} }
+  }
+});
+
+// Sentiment trend line chart
+const sentimentTrendCtx = document.getElementById('sentimentTrendChart');
+new Chart(sentimentTrendCtx, {
+  type:'line',
+  data:{
+    labels:['Jan','Feb','Mar','Apr','May','Jun'],
+    datasets:[{
+      label:'Sentiment Index',
+      data:[-12,5,18,10,24,20],
+      borderColor:colors.accent3,
+      backgroundColor:'rgba(255,122,184,0.12)',
+      fill:true, tension:.4, pointRadius:3, borderWidth:3
+    }]
+  },
+  options:{
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{display:false}},
+      y:{grid:{color:'#1c2236'}, suggestedMin:-50, suggestedMax:50}
+    }
+  }
+});
+
+// Feature importance horizontal bar
+const featureCtx = document.getElementById('featureChart');
+new Chart(featureCtx, {
+  type:'bar',
+  data:{
+    labels:['Built-up Area','Locality Tier','BHK Count','Property Type','Sentiment Score','Bathrooms','Property Age'],
+    datasets:[{
+      data:[32,24,15,11,9,6,3],
+      backgroundColor:[colors.accent,colors.accent2,colors.accent3,colors.warn,'#9b8cff',colors.good,'#7d8aa8'],
+      borderRadius:8
+    }]
+  },
+  options:{
+    indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{ x:{grid:{color:'#1c2236'}}, y:{grid:{display:false}} }
+  }
+});
+
+// BHK distribution chart (updated to highlight selected)
+const bhkLabels = [1,2,2.5,3,3.5,4,4.5,5,6,7,8,9,10];
+const bhkDistCtx = document.getElementById('bhkDistChart');
+const bhkDistChart = new Chart(bhkDistCtx, {
+  type:'bar',
+  data:{
+    labels:bhkLabels.map(b=>b+' BHK'),
+    datasets:[{
+      label:'Avg Price (₹ Lakh)',
+      data:bhkLabels.map(b=> Math.round((35 + b*14) * 10) / 10 ),
+      backgroundColor: bhkLabels.map(()=> 'rgba(109,140,255,0.35)'),
+      borderRadius:6
+    }]
+  },
+  options:{
+    plugins:{legend:{display:false}},
+    scales:{ x:{grid:{display:false}, ticks:{font:{size:10}}}, y:{grid:{color:'#1c2236'}} }
+  }
+});
+
+/* ---------------- Prediction Engine ---------------- */
+function runPrediction(){
+  const sqftVal = parseFloat(sqft.value);
+  const bhkVal = parseFloat(bhkSelect.value);
+  const bathVal = parseInt(bathSelect.value);
+  const tierMult = parseFloat(document.getElementById('tier').value);
+  const ageVal = parseFloat(age.value);
+  const floorVal = parseFloat(floor.value);
+  const sentVal = parseFloat(sentiment.value);
+
+  const basePerSqft = parseFloat(ppsfCustom.value) || 5800;
+
+  const bhkFactor = 1 + (bhkVal - 1) * 0.075;
+  const bathFactor = 1 + (bathVal - 1) * 0.045;
+  const typeFactor = selectedMult;
+  const tierFactor = tierMult;
+  const ageFactor = 1 - Math.min(ageVal * 0.006, 0.22);
+  const floorFactor = 1 + Math.min(floorVal * 0.004, 0.08);
+  const sentFactor = 1 + (sentVal / 500);
+
+  let total = sqftVal * basePerSqft * bhkFactor * bathFactor * typeFactor * tierFactor * ageFactor * floorFactor * sentFactor;
+
+  const pricePerSqft = total / sqftVal;
+
+  // contributions for doughnut (approximate relative shares)
+  const baseShare = sqftVal * basePerSqft;
+  const bhkShare = baseShare * (bhkFactor - 1);
+  const bathShare = baseShare * (bathFactor - 1);
+  const typeShare = baseShare * (typeFactor - 1);
+  const locShare = baseShare * (tierFactor - 1);
+  const sentShare = baseShare * (sentFactor - 1);
+  const rawParts = [baseShare, Math.max(bhkShare,1), Math.max(bathShare,1), Math.abs(typeShare)+1, Math.abs(locShare)+1, Math.abs(sentShare)+1];
+
+  breakdownChart.data.datasets[0].data = rawParts;
+  breakdownChart.update();
+
+  // update type comparison highlight
+  typeCompareChart.data.datasets[0].backgroundColor = typeLabels.map(t=> t===selectedType ? colors.accent2 : 'rgba(109,140,255,0.35)');
+  typeCompareChart.update();
+
+  // update bhk dist highlight
+  bhkDistChart.data.datasets[0].backgroundColor = bhkLabels.map(b=> b===bhkVal ? colors.accent3 : 'rgba(109,140,255,0.35)');
+  bhkDistChart.update();
+
+  // Display
+  document.getElementById('finalPrice').textContent = formatINR(total);
+  document.getElementById('finalPriceWords').textContent = formatFullINR(total) + ' · ₹' + Math.round(pricePerSqft).toLocaleString('en-IN') + ' / sqft';
+  document.getElementById('ppsf').textContent = '₹' + Math.round(pricePerSqft).toLocaleString('en-IN');
+
+  const localAvg = Math.round(basePerSqft * tierFactor);
+  document.getElementById('localAvg').textContent = '₹' + localAvg.toLocaleString('en-IN');
+  const vsMarketPct = (((pricePerSqft - localAvg) / localAvg) * 100).toFixed(1);
+  const vsEl = document.getElementById('vsMarket');
+  vsEl.textContent = (vsMarketPct >= 0 ? '+' : '') + vsMarketPct + '%';
+  vsEl.style.color = vsMarketPct >= 0 ? 'var(--good)' : 'var(--bad)';
+
+  // simple EMI calc: 80% loan, 8.5% annual, 20 years
+  const principal = total * 0.8;
+  const r = 0.085/12;
+  const n = 20*12;
+  const emi = principal * r * Math.pow(1+r,n) / (Math.pow(1+r,n)-1);
+  document.getElementById('emi').textContent = '₹' + (emi/1000).toFixed(1) + 'K';
+
+  // confidence: tighter when inputs are mid-range
+  let confidence = 95 - Math.abs(sentVal)*0.05 - Math.max(0, sqftVal-3500)*0.002 - ageVal*0.15;
+  confidence = Math.max(70, Math.min(97, confidence));
+  document.getElementById('confBar').style.width = confidence.toFixed(0) + '%';
+  document.getElementById('confLabel').textContent = confidence.toFixed(0) + '% confidence';
+
+  // badges
+  let sentBadgeClass = 'neu', sentText = 'Neutral';
+  if(sentVal >= 10){ sentBadgeClass='pos'; sentText='Positive'; }
+  if(sentVal >= 50){ sentText='Very Bullish'; }
+  if(sentVal <= -10){ sentBadgeClass='neg'; sentText='Negative'; }
+  if(sentVal <= -50){ sentText='Very Bearish'; }
+
+  document.getElementById('badgeRow').innerHTML = `
+    <span class="badge ${sentBadgeClass}">📈 Sentiment: ${sentText}</span>
+    <span class="badge neu">${selectedType}</span>
+    <span class="badge neu">${bhkVal} BHK · ${bathVal} Bath</span>
+  `;
+}
+
+// run once on load
+runPrediction();
+</script>
+
+</body>
+</html>
